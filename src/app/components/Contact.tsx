@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { CheckCircle2, MapPin, Mail, Phone } from "lucide-react";
-import { motion } from "motion/react";
+//import { motion } from "motion/react";
+import { motion, Variants } from "framer-motion";
 
 export function Contact() {
+  const CONTACT_API_URL = "http://localhost:8787/api/contact";
   const [form, setForm] = useState({
     name: "",
     email: "",
     message: "",
     agreed: false
   });
+  const [isSending, setIsSending] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -19,15 +22,48 @@ export function Contact() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Request Sent!");
-    setForm({ name: "", email: "", message: "", agreed: false });
+    setIsSending(true);
+
+    try {
+      const response = await fetch(CONTACT_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await response.json().catch(() => null) as { ok?: boolean; error?: string; messageId?: string | null } | null;
+      if (!response.ok || data?.ok !== true) {
+        throw new Error(data?.error ?? "Failed to send request.");
+      }
+
+      alert(`Request Sent!${data.messageId ? `\nSendGrid Message ID: ${data.messageId}` : ""}`);
+      setForm({ name: "", email: "", message: "", agreed: false });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Something went wrong while sending your request.";
+      alert(message);
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const fadeUpVariant = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } },
+
+  const fadeUpVariant: Variants = {
+    hidden: {
+      opacity: 0,
+      y: 30,
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.7,
+        ease: "easeOut",
+      },
+    },
   };
 
   return (
@@ -136,17 +172,20 @@ export function Contact() {
 
             <button
               type="submit"
+              disabled={isSending}
               className="group relative w-full py-4 mt-4 rounded-xl font-semibold overflow-hidden transition-all duration-500 hover:-translate-y-1"
               style={{
                 color: "#000000",
                 fontFamily: "'Inter', sans-serif",
                 fontSize: "0.95rem",
-                boxShadow: "0 0 20px rgba(212,175,55,0.15)"
+                boxShadow: "0 0 20px rgba(212,175,55,0.15)",
+                opacity: isSending ? 0.7 : 1,
+                cursor: isSending ? "not-allowed" : "pointer"
               }}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-[#D4AF37] to-[#AA8529] transition-transform duration-500 group-hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-r from-[#FBE18D] to-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <span className="relative z-10">Send Your Request</span>
+              <span className="relative z-10">{isSending ? "Sending..." : "Send Your Request"}</span>
             </button>
           </form>
 
@@ -160,7 +199,7 @@ export function Contact() {
                   <Mail size={18} className="text-[#D4AF37] group-hover:scale-110 transition-transform duration-300" strokeWidth={2} />
                 </div>
                 <span className="text-sm text-gray-300 font-medium group-hover:text-white transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  hello@byters.dev
+                  swapnanilsarkar26@gmail.com
                 </span>
               </div>
               <div className="flex items-center gap-3 group cursor-pointer">
